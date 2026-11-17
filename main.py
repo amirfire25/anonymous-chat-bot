@@ -81,7 +81,7 @@ class Database:
             await db.commit()
 
     async def add_user(self, user_id, username="", first_name=""):
-        async with await self.connect() as db:
+        async with self.connect() as db:
             await db.execute(
                 """INSERT INTO users(user_id, username, first_name)
                    VALUES(?,?,?)
