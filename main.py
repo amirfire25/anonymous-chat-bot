@@ -40,13 +40,13 @@ class Database:
     def __init__(self, path: str):
         self.path = path
 
-    async def connect(self):
-        db = await aiosqlite.connect(self.path, timeout=30)
-        db.row_factory = aiosqlite.Row
-        await db.execute("PRAGMA busy_timeout=30000")
-        await db.execute("PRAGMA foreign_keys=ON")
-        return db
-
+async def connect(self):
+    db = aiosqlite.connect(self.path, timeout=30)
+    db.row_factory = aiosqlite.Row
+    await db.execute("PRAGMA busy_timeout=30000")
+    await db.execute("PRAGMA foreign_keys=ON")
+    return db
+    
     async def init(self):
         async with await self.connect() as db:
             await db.executescript("""
