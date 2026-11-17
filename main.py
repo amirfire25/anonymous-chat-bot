@@ -48,8 +48,7 @@ async def connect(self):
     return db
     
     async def init(self):
-        async with await self.connect() as db:
-            await db.executescript("""
+async with self.connect() as db:            await db.executescript("""
                 CREATE TABLE IF NOT EXISTS users (
                     user_id INTEGER PRIMARY KEY,
                     username TEXT DEFAULT '',
@@ -93,16 +92,14 @@ async def connect(self):
             await db.commit()
 
     async def is_banned(self, user_id):
-        async with await self.connect() as db:
-            cur = await db.execute(
+async with self.connect() as db:            cur = await db.execute(
                 "SELECT is_banned FROM users WHERE user_id=?", (user_id,)
             )
             row = await cur.fetchone()
             return bool(row and row["is_banned"])
 
     async def set_ban(self, user_id, banned):
-        async with await self.connect() as db:
-            await db.execute(
+async with self.connect() as db:            await db.execute(
                 "UPDATE users SET is_banned=? WHERE user_id=?",
                 (int(banned), user_id),
             )
@@ -124,8 +121,8 @@ async def connect(self):
 
     async def match_or_queue(self, user_id):
         # قفل تراکنش از مچ‌شدن هم‌زمان یک کاربر با دو نفر جلوگیری می‌کند.
-        async with await self.connect() as db:
-            await db.execute("BEGIN IMMEDIATE")
+async with self.connect() as db:
+    await db.execute("BEGIN IMMEDIATE")
 
             cur = await db.execute(
                 "SELECT is_banned FROM users WHERE user_id=?", (user_id,)
@@ -184,13 +181,13 @@ async def connect(self):
             return "matched", partner
 
     async def cancel_queue(self, user_id):
-        async with await self.connect() as db:
-            await db.execute("DELETE FROM queue WHERE user_id=?", (user_id,))
+async with self.connect() as db:
+    await db.execute("DELETE FROM queue WHERE user_id=?", (user_id,))
             await db.commit()
 
     async def get_partner(self, user_id):
-        async with await self.connect() as db:
-            cur = await db.execute(
+async with self.connect() as db:
+    cur = await db.execute(
                 """SELECT user1_id,user2_id FROM sessions
                    WHERE user1_id=? OR user2_id=?""",
                 (user_id, user_id),
@@ -201,8 +198,8 @@ async def connect(self):
             return row["user2_id"] if row["user1_id"] == user_id else row["user1_id"]
 
     async def end_session(self, user_id):
-        async with await self.connect() as db:
-            cur = await db.execute(
+async with self.connect() as db:
+    cur = await db.execute(
                 """SELECT user1_id,user2_id FROM sessions
                    WHERE user1_id=? OR user2_id=?""",
                 (user_id, user_id),
@@ -219,8 +216,8 @@ async def connect(self):
             return partner
 
     async def add_report(self, reporter, reported):
-        async with await self.connect() as db:
-            cur = await db.execute(
+async with self.connect() as db:
+    cur = await db.execute(
                 "INSERT INTO reports(reporter_id,reported_id) VALUES(?,?)",
                 (reporter, reported),
             )
@@ -228,8 +225,8 @@ async def connect(self):
             return cur.lastrowid
 
     async def get_stats(self):
-        async with await self.connect() as db:
-            async def count(sql):
+async with self.connect() as db:
+    async def count(sql):
                 cur = await db.execute(sql)
                 row = await cur.fetchone()
                 return row[0]
