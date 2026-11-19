@@ -19,7 +19,7 @@ async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(update.message.text)
 
 def main():
-    app = Application.builder().token(TOKEN).build()
+    app = Application.builder().token(9080072355:AAGH1IMh6aZfPGteQydTz8u7bnkQhRsOFoc).build()
 
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("help", help_command))
