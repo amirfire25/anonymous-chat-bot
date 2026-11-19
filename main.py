@@ -7,7 +7,7 @@ from telegram.ext import (
     filters
 )
 
-TOKEN = "YOUR_BOT_TOKEN"
+TOKEN = "9080072355:AAGH1IMh6aZfPGteQydTz8u7bnkQhRsOFoc"
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("سلام! ربات با موفقیت فعاله ❤️")
@@ -19,7 +19,7 @@ async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(update.message.text)
 
 def main():
-    app = Application.builder().token(9080072355:AAGH1IMh6aZfPGteQydTz8u7bnkQhRsOFoc).build()
+    app = Application.builder().token(TOKEN).build()
 
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("help", help_command))
