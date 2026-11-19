@@ -13,7 +13,7 @@ from telegram.ext import (
     ContextTypes
 )
 
-TOKEN = "YOUR_BOT_TOKEN"
+TOKEN = "9080072355:AAGH1IMh6aZfPGteQydTz8u7bnkQhRsOFoc"
 
 # آمار موقت کاربران
 stats = {}
