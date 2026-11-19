@@ -13,40 +13,118 @@ from telegram.ext import (
     ContextTypes
 )
 
-TOKEN = "9080072355:AAGH1IMh6aZfPGteQydTz8u7bnkQhRsOFoc"
+# =========================
+# CONFIG
+# =========================
 
-# آمار موقت کاربران
-stats = {}
+TOKEN = "YOUR_BOT_TOKEN"
 
-# -------------------------
-# شروع ربات
-# -------------------------
+CHANNEL_ID = "@pv_utrux"
+CHANNEL_LINK = "https://t.me/pv_utrux"
+
+
+# =========================
+# MAIN MENU
+# =========================
 
 def main_menu():
     keyboard = [
         [InlineKeyboardButton("🎮 شروع بازی", callback_data="new")],
-        [InlineKeyboardButton("🏆 آمار من", callback_data="stats")],
+        [InlineKeyboardButton("🏆 آمار من", callback_data="stats")]
     ]
     return InlineKeyboardMarkup(keyboard)
 
+
+# =========================
+# FORCE JOIN
+# =========================
+
+async def check_join(user_id, context):
+    try:
+        member = await context.bot.get_chat_member(
+            chat_id=CHANNEL_ID,
+            user_id=user_id
+        )
+
+        return member.status in (
+            "member",
+            "administrator",
+            "creator"
+        )
+
+    except Exception as e:
+        print(f"Join check error: {e}")
+        return False
+
+
+def join_keyboard():
+    keyboard = [
+        [
+            InlineKeyboardButton(
+                "📢 عضویت در کانال",
+                url=CHANNEL_LINK
+            )
+        ],
+        [
+            InlineKeyboardButton(
+                "✅ بررسی عضویت",
+                callback_data="check_join"
+            )
+        ]
+    ]
+
+    return InlineKeyboardMarkup(keyboard)
+
+
+async def join_message(update, context):
+    text = (
+        "🔒 برای استفاده از ربات باید عضو کانال ما بشی!\n\n"
+        "بعد از عضویت روی دکمه بررسی عضویت بزن."
+    )
+
+    if update.callback_query:
+        await update.callback_query.edit_message_text(
+            text,
+            reply_markup=join_keyboard()
+        )
+    else:
+        await update.message.reply_text(
+            text,
+            reply_markup=join_keyboard()
+        )
+
+
+# =========================
+# START
+# =========================
+
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+
+    if not await check_join(update.effective_user.id, context):
+        await join_message(update, context)
+        return
+
     await update.message.reply_text(
         "🎮 به بازی دوز خوش اومدی!\n\n"
         "من رقیب تو هستم. آماده‌ای منو شکست بدی؟ 😎",
         reply_markup=main_menu()
     )
 
-# -------------------------
-# منوی انتخاب علامت
-# -------------------------
+
+# =========================
+# SYMBOL SELECTION
+# =========================
 
 async def choose_symbol(query):
+
     keyboard = [
         [
             InlineKeyboardButton("❌ ضربدر", callback_data="symbol_X"),
             InlineKeyboardButton("⭕ دایره", callback_data="symbol_O")
         ],
-        [InlineKeyboardButton("🔙 بازگشت", callback_data="home")]
+        [
+            InlineKeyboardButton("🔙 بازگشت", callback_data="home")
+        ]
     ]
 
     await query.edit_message_text(
@@ -54,16 +132,38 @@ async def choose_symbol(query):
         reply_markup=InlineKeyboardMarkup(keyboard)
     )
 
-# -------------------------
-# انتخاب سختی
-# -------------------------
+
+# =========================
+# DIFFICULTY
+# =========================
 
 async def choose_difficulty(query, symbol):
+
     keyboard = [
-        [InlineKeyboardButton("🟢 آسان", callback_data=f"level_easy_{symbol}")],
-        [InlineKeyboardButton("🟡 متوسط", callback_data=f"level_medium_{symbol}")],
-        [InlineKeyboardButton("🔴 سخت (غیرقابل شکست)", callback_data=f"level_hard_{symbol}")],
-        [InlineKeyboardButton("🔙 بازگشت", callback_data="new")]
+        [
+            InlineKeyboardButton(
+                "🟢 آسان",
+                callback_data=f"level_easy_{symbol}"
+            )
+        ],
+        [
+            InlineKeyboardButton(
+                "🟡 متوسط",
+                callback_data=f"level_medium_{symbol}"
+            )
+        ],
+        [
+            InlineKeyboardButton(
+                "🔴 سخت (غیرقابل شکست)",
+                callback_data=f"level_hard_{symbol}"
+            )
+        ],
+        [
+            InlineKeyboardButton(
+                "🔙 بازگشت",
+                callback_data="new"
+            )
+        ]
     ]
 
     await query.edit_message_text(
@@ -71,9 +171,10 @@ async def choose_difficulty(query, symbol):
         reply_markup=InlineKeyboardMarkup(keyboard)
     )
 
-# -------------------------
-# منطق بازی
-# -------------------------
+
+# =========================
+# GAME LOGIC
+# =========================
 
 WIN_LINES = [
     (0, 1, 2),
@@ -86,23 +187,33 @@ WIN_LINES = [
     (2, 4, 6)
 ]
 
+
 def winner(board):
+
     for a, b, c in WIN_LINES:
         if board[a] != " " and board[a] == board[b] == board[c]:
             return board[a]
 
     return None
 
+
 def available(board):
-    return [i for i, cell in enumerate(board) if cell == " "]
+    return [
+        i for i, cell in enumerate(board)
+        if cell == " "
+    ]
+
 
 def minimax(board, ai, player, maximizing):
+
     result = winner(board)
 
     if result == ai:
         return 10
+
     if result == player:
         return -10
+
     if not available(board):
         return 0
 
@@ -127,91 +238,123 @@ def minimax(board, ai, player, maximizing):
 
     return best
 
+
 def ai_move(board, ai, player, difficulty):
+
     moves = available(board)
 
     if not moves:
         return None
 
-    # آسان
     if difficulty == "easy":
         return random.choice(moves)
 
-    # حرکت برد
+    # Find winning move
     for move in moves:
         board[move] = ai
+
         if winner(board) == ai:
             board[move] = " "
             return move
+
         board[move] = " "
 
-    # جلوگیری از برد بازیکن
+    # Block player
     for move in moves:
         board[move] = player
+
         if winner(board) == player:
             board[move] = " "
             return move
+
         board[move] = " "
 
-    # متوسط
     if difficulty == "medium":
         return random.choice(moves)
 
-    # سخت: الگوریتم Minimax
+    # Minimax
     best_score = -100
     best_moves = []
 
     for move in moves:
         board[move] = ai
-        score = minimax(board, ai, player, False)
+
+        score = minimax(
+            board,
+            ai,
+            player,
+            False
+        )
+
         board[move] = " "
 
         if score > best_score:
             best_score = score
             best_moves = [move]
+
         elif score == best_score:
             best_moves.append(move)
 
     return random.choice(best_moves)
 
-# -------------------------
-# ساخت صفحه بازی
-# -------------------------
+
+# =========================
+# BOARD
+# =========================
 
 def board_keyboard(board, finished=False):
+
     keyboard = []
 
     for row in range(3):
         buttons = []
 
         for col in range(3):
+
             i = row * 3 + col
             cell = board[i]
 
             if cell == "X":
                 label = "❌"
+
             elif cell == "O":
                 label = "⭕"
+
             else:
                 label = "▫️"
 
-            callback = "noop" if finished or cell != " " else f"move_{i}"
+            callback = (
+                "noop"
+                if finished or cell != " "
+                else f"move_{i}"
+            )
 
             buttons.append(
-                InlineKeyboardButton(label, callback_data=callback)
+                InlineKeyboardButton(
+                    label,
+                    callback_data=callback
+                )
             )
 
         keyboard.append(buttons)
 
     if finished:
         keyboard.append([
-            InlineKeyboardButton("🔄 بازی مجدد", callback_data="new"),
-            InlineKeyboardButton("🏠 منوی اصلی", callback_data="home")
+            InlineKeyboardButton(
+                "🔄 بازی مجدد",
+                callback_data="new"
+            ),
+            InlineKeyboardButton(
+                "🏠 منوی اصلی",
+                callback_data="home"
+            )
         ])
 
     return InlineKeyboardMarkup(keyboard)
 
+
 def game_text(game):
+
     player = game["player"]
     ai = game["ai"]
 
@@ -222,14 +365,30 @@ def game_text(game):
         "نوبت توئه! یک خانه انتخاب کن."
     )
 
+
+# =========================
+# STATISTICS
+# =========================
+
 def get_stats(user_id):
+
     return stats.setdefault(
         user_id,
-        {"win": 0, "lose": 0, "draw": 0}
+        {
+            "win": 0,
+            "lose": 0,
+            "draw": 0
+        }
     )
 
+
+stats = {}
+
+
 def finish_game(game, user_id):
+
     result = winner(game["board"])
+
     player = game["player"]
     ai = game["ai"]
 
@@ -244,36 +403,71 @@ def finish_game(game, user_id):
     get_stats(user_id)["draw"] += 1
     return "🤝 بازی مساوی شد!"
 
-# -------------------------
-# مدیریت دکمه‌ها
-# -------------------------
+
+# =========================
+# BUTTON HANDLER
+# =========================
 
 async def buttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
+
     query = update.callback_query
     await query.answer()
 
     user_id = query.from_user.id
     data = query.data
 
-    games = context.application.bot_data.setdefault("games", {})
+    games = context.application.bot_data.setdefault(
+        "games",
+        {}
+    )
+
+    # Membership verification button
+    if data == "check_join":
+
+        if await check_join(user_id, context):
+
+            await query.edit_message_text(
+                "✅ عضویت تأیید شد!\n\n"
+                "حالا می‌تونی بازی کنی 😎",
+                reply_markup=main_menu()
+            )
+
+        else:
+
+            await query.answer(
+                "❌ هنوز عضو کانال نشدی!",
+                show_alert=True
+            )
+
+        return
+
+    # Force join check for every game action
+    if not await check_join(user_id, context):
+        await join_message(update, context)
+        return
 
     if data == "noop":
         return
 
     if data == "home":
+
         games.pop(user_id, None)
+
         await query.edit_message_text(
             "🎮 منوی اصلی",
             reply_markup=main_menu()
         )
+
         return
 
     if data == "new":
+
         games.pop(user_id, None)
         await choose_symbol(query)
         return
 
     if data == "stats":
+
         s = get_stats(user_id)
 
         await query.edit_message_text(
@@ -282,18 +476,27 @@ async def buttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"🔴 باخت: {s['lose']}\n"
             f"🟡 مساوی: {s['draw']}\n"
             f"🎮 مجموع: {s['win'] + s['lose'] + s['draw']}",
+
             reply_markup=InlineKeyboardMarkup([
-                [InlineKeyboardButton("🔙 بازگشت", callback_data="home")]
+                [
+                    InlineKeyboardButton(
+                        "🔙 بازگشت",
+                        callback_data="home"
+                    )
+                ]
             ])
         )
+
         return
 
     if data.startswith("symbol_"):
+
         symbol = data.split("_")[1]
         await choose_difficulty(query, symbol)
         return
 
     if data.startswith("level_"):
+
         _, difficulty, symbol = data.split("_")
 
         game = {
@@ -309,36 +512,47 @@ async def buttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
             game_text(game),
             reply_markup=board_keyboard(game["board"])
         )
+
         return
 
     if data.startswith("move_"):
+
         game = games.get(user_id)
 
         if not game:
+
             await query.edit_message_text(
                 "بازی فعالی پیدا نشد.",
                 reply_markup=main_menu()
             )
+
             return
 
         board = game["board"]
-        move = int(data.split("_")[1])
+
+        try:
+            move = int(data.split("_")[1])
+        except (ValueError, IndexError):
+            return
 
         if move < 0 or move > 8 or board[move] != " ":
             return
 
-        # حرکت بازیکن
+        # Player move
         board[move] = game["player"]
 
         if winner(board) or not available(board):
+
             result = finish_game(game, user_id)
+
             await query.edit_message_text(
                 result,
                 reply_markup=board_keyboard(board, True)
             )
+
             return
 
-        # حرکت ربات
+        # AI move
         ai = ai_move(
             board,
             game["ai"],
@@ -350,11 +564,14 @@ async def buttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
             board[ai] = game["ai"]
 
         if winner(board) or not available(board):
+
             result = finish_game(game, user_id)
+
             await query.edit_message_text(
                 result,
                 reply_markup=board_keyboard(board, True)
             )
+
             return
 
         await query.edit_message_text(
@@ -362,22 +579,30 @@ async def buttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
             reply_markup=board_keyboard(board)
         )
 
-# -------------------------
-# اجرای ربات
-# -------------------------
+
+# =========================
+# APPLICATION
+# =========================
 
 def main():
+
     if TOKEN == "YOUR_BOT_TOKEN":
-        raise ValueError("Please enter your Telegram bot token.")
+        raise ValueError(
+            "Please enter your Telegram bot token."
+        )
 
     app = Application.builder().token(TOKEN).build()
 
     app.add_handler(CommandHandler("start", start))
-    app.add_handler(CallbackQueryHandler(buttons))
+
+    app.add_handler(
+        CallbackQueryHandler(buttons)
+    )
 
     print("Tic Tac Toe Bot is running...")
 
     app.run_polling()
+
 
 if __name__ == "__main__":
     main()
