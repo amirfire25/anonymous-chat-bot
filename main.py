@@ -17,7 +17,7 @@ from telegram.ext import (
 # CONFIG
 # =========================
 
-TOKEN = "YOUR_BOT_TOKEN"
+TOKEN = "8679812734:AAGkOHqpjNyy30Nsq4uFdkG-lIS6pLyWz-g"
 
 CHANNEL_ID = "@pv_utrux"
 CHANNEL_LINK = "https://t.me/pv_utrux"
